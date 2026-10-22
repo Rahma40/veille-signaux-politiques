@@ -17,7 +17,7 @@ import csv
 import re
 import sqlite3
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,6 +29,8 @@ COLS = ["article_id", "title", "published_at", "source", "url", "text", "text_st
         "is_relevant", "duplicate_of"]
 OUT_CSV, OUT_DB = Path("data/processed/corpus_final.csv"), Path("data/processed/corpus.db")
 REPORT = Path("docs/corpus_final_report.md")
+SUMMARIES = Path("data/raw/rss_summaries.csv")  # créé par collect_rss.py (optionnel)
+RESOLVED = Path("data/raw/ami/resolved.csv")  # créé par resolve_google_news.py (optionnel)
 
 # --- Réglages de qualité (modifiables) ---
 # Fichier du coéquipier : le sujet « 17_octobre » parle surtout du massacre de 1961 (69 titres sur 72),
@@ -65,6 +67,11 @@ def main(friend_csv: str = None) -> None:
     if friend_csv:
         with open(friend_csv, encoding="utf-8-sig", newline="") as f:
             friend_rows = list(csv.DictReader(f))
+    resolved = {}
+    if RESOLVED.exists():
+        csv.field_size_limit(10**9)
+        with RESOLVED.open(encoding="utf-8", newline="") as f:
+            resolved = {r["article_id"]: r for r in csv.DictReader(f)}
     skipped_sujet = 0
     for r in friend_rows:
         url = r["url"].strip()
@@ -84,6 +91,11 @@ def main(friend_csv: str = None) -> None:
             "duplicate_of": "",
         }
         src_of[aid] = "fichier du coéquipier"
+        rr = resolved.get(aid)
+        if rr:  # article_id reste celui du lien d'origine (stable) ; url et texte viennent de resolved.csv
+            if rr["real_url"]:
+                final[aid]["url"] = normalize_url(rr["real_url"])
+            final[aid].update(text=rr["text"], text_status=rr["text_status"], fetched_at=rr["fetched_at"])
 
     # 2) Tes articles collectés
     for aid, r in load_existing().items():
@@ -96,12 +108,33 @@ def main(friend_csv: str = None) -> None:
             continue
         final[aid] = {c: r.get(c, "") for c in COLS}
 
+    # Dernier recours : si le texte intégral est bloqué, on met le résumé publié par le flux RSS
+    # avec un statut à part (« summary ») pour ne pas le confondre avec un article complet.
+    summaries = {}
+    if SUMMARIES.exists():
+        with SUMMARIES.open(encoding="utf-8", newline="") as f:
+            summaries = {r["article_id"]: r["summary"] for r in csv.DictReader(f)}
+    for aid, r in final.items():
+        if r["text_status"] not in ("ok", "partial") and aid in summaries:
+            r.update(text=summaries[aid], text_status="summary")
+
     rows = list(final.values())
     for r in rows:
         r["published_at"] = norm_date(r["published_at"])
         r["title"] = " ".join(r["title"].split())
         r["source"] = clean_source(r["source"])
-    dup = find_duplicates(rows)
+    # Doublons par URL (ex. un article de ton flux RSS retrouvé via le fichier du coéquipier) :
+    # on garde la ligne qui a du texte, sinon la plus ancienne.
+    by_url, url_dup = defaultdict(list), {}
+    for r in rows:
+        by_url[r["url"]].append(r)
+    for grp in by_url.values():
+        if len(grp) > 1:
+            keep = min(grp, key=lambda r: (r["text_status"] not in ("ok", "partial"), r["published_at"]))
+            url_dup.update({r["article_id"]: keep["article_id"] for r in grp if r is not keep})
+    # Doublons par titre sur les lignes restantes (jamais de renvoi circulaire entre deux lignes).
+    dup = find_duplicates([r for r in rows if r["article_id"] not in url_dup])
+    dup.update(url_dup)
     for r in rows:
         r["duplicate_of"] = dup.get(r["article_id"], "")
     before = len(rows)

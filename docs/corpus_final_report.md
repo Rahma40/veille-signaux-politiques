@@ -1,20 +1,20 @@
-# Rapport du corpus final (22/10/2026 12:52 UTC)
+# Rapport du corpus final (22/10/2026 14:08 UTC)
 
-- Articles : **277** | doublons de titre signalés : **1**
+- Articles : **294** | doublons de titre signalés : **1**
 - Écartés : 72 (sujet ['17_octobre'] du fichier coéquipier) | 47 publiés avant 2026-10-12
 - Sans date : 0 | hors période 2026-10-12 à 2026-10-23 : 0
 - Sources différentes : 50
 
 ## Origine des articles (après filtres)
-- rss : 163
+- rss : 180
 - fichier du coéquipier : 114
 
 ## Sources (10 premières)
-- Libération : 50
+- Libération : 53
+- Le Monde : 35
 - franceinfo : 34
-- Le Monde : 32
-- RFI : 32
-- Ouest-France : 23
+- RFI : 33
+- Ouest-France : 32
 - Le Figaro : 21
 - Orange Actualités : 17
 - BFM : 10
@@ -32,11 +32,10 @@
 - 2026-10-19 : 33
 - 2026-10-20 : 45
 - 2026-10-21 : 39
-- 2026-10-22 : 67
+- 2026-10-22 : 84
 
 ## Statut du texte
-- empty : 98
-- ok : 68
-- error : 68
-- partial : 27
-- pending : 16
+- ok : 139
+- summary : 59
+- partial : 53
+- error : 43
