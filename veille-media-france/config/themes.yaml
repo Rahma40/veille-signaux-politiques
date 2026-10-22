@@ -1,0 +1,8 @@
+# Grille initiale, à valider par lecture des articles et des clusters.
+themes:
+  mobilisations_sociales: [manifestation, mobilisation, blocus, grève, syndicat]
+  maintien_ordre_securite: [police, violence, sécurité, interpellation, couvre-feu]
+  textes_parlement: [projet de loi, Sénat, Assemblée nationale, député, commission]
+  budget_finances: [budget, déficit, dépenses, financement, dette]
+  education_precarite: [université, Parcoursup, bourse, précarité étudiante, lycée]
+  vie_politique_institutions: [gouvernement, ministre, Matignon, Élysée, parti]
